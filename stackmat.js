@@ -21,6 +21,7 @@ var stackmat = (function() {
 
 		edgeIdxDiff = Math.ceil(sample_rate / 6);
 		lastVal.length = edgeIdxDiff;
+		edgeIdxCur = 0;
 
 		getUserMedia.call(window.navigator, {
 			"audio": {"optional": [{"echoCancellation": false}]}
@@ -81,6 +82,7 @@ var stackmat = (function() {
 	var lastVal = [];
 	var lastSgn = 0;
 	var edgeIdxDiff = 0;
+	var edgeIdxCur = 0;
 	var THRESHOLD_SCHM = 0.2;
 	var THRESHOLD_EDGE = 0.7;
 	var lenVoltageKeep = 0;
@@ -89,9 +91,9 @@ var stackmat = (function() {
 		// signal = Math.max(Math.min(signal, 1), -1);
 		// Schmidt trigger
 
-		lastVal.unshift(signal);
-		var isEdge = Math.abs(lastVal[edgeIdxDiff] - signal) > THRESHOLD_EDGE;
-		lastVal.pop();
+		var isEdge = Math.abs(lastVal[edgeIdxCur] - signal) > THRESHOLD_EDGE;
+		lastVal[edgeIdxCur] = signal;
+		edgeIdxCur = (edgeIdxCur + 1) % edgeIdxDiff;
 
 		var diff = Math.abs(signal - (lastSgn ? 1 : -1)) - 1;
 		if (isEdge && diff > THRESHOLD_SCHM && lenVoltageKeep > sample_rate * 0.6) {
@@ -101,10 +103,10 @@ var stackmat = (function() {
 			lastSgn ^= 1;
 			lenVoltageKeep = 0;
 		} else if (lenVoltageKeep > sample_rate * 6) {
-			for (var i=0; i<6; i++) {
+			for (var i=0; i<5; i++) {
 				appendBit(lastSgn);
 			}
-			lenVoltageKeep -= sample_rate * 6;
+			lenVoltageKeep -= sample_rate * 5;
 		}
 
 		lenVoltageKeep++;
